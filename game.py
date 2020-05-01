@@ -192,10 +192,10 @@ class checkerBoard(Frame):
 				count = 0  # Counter for counting pieces that a player wants to jump over
 				saveRow, saveColumn = -1, -1
 				###############################################################################
-				if startRow > endRow: rows = range(startRow - 1, endRow - 1, -1)
-				else: rows = range(startRow + 1, endRow + 1)
-				if startColumn > endColumn: columns = range(startColumn - 1, endColumn - 1, -1)
-				else: columns = range(startColumn + 1, endColumn + 1)
+				if startRow > endRow: rows = range(startRow - 1, endRow, -1)
+				else: rows = range(startRow + 1, endRow)
+				if startColumn > endColumn: columns = range(startColumn - 1, endColumn, -1)
+				else: columns = range(startColumn + 1, endColumn)
 				###############################################################################
 				for row, column in zip(rows, columns):
 					if self.squares[row, column].pieceColor == self.opponentColor and count == 0:
@@ -204,6 +204,8 @@ class checkerBoard(Frame):
 						saveColumn = column
 					elif self.squares[row, column].pieceColor != '':
 						return
+				if count == 0:
+					return
 				###########Check if it is the move that maximizes the outcome
 				dr = (endRow - startRow)//abs(endRow - startRow)
 				dc = (endColumn - startColumn) // abs(endColumn - startColumn)
@@ -233,7 +235,7 @@ class checkerBoard(Frame):
 				if nextMultiJump == self.multiJump or self.multiJump:
 					self.swap()
 					self.squares[saveRow, saveColumn].clear()
-					self.checkForMultiJump()
+					self.checkForMultiJump(king = True)
 					if not self.multiJump:
 						self.squares[self.endPosition].deselect()
 						self.switchSides()
