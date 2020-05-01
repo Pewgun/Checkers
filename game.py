@@ -180,9 +180,9 @@ class checkerBoard(Frame):
 			if abs(startColumn-endColumn) == 1 and (endRow - startRow) == -1:
 				self.swap()
 				self.squares[self.endPosition].deselect()
-				self.switchSides()
 				if endRow == 0:
 					self.squares[self.endPosition].kingenize()
+				self.switchSides()
 
 	def makeJump(self):
 		startRow, startColumn = self.startPosition
@@ -260,7 +260,7 @@ class checkerBoard(Frame):
 		self.multiJump = False
 		endRow, endColumn = self.endPosition
 		if king:
-			for (dr, dc) in [(-1, 1),(-1, -1)]:
+			for (dr, dc) in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
 				r = endRow+dr
 				c = endColumn+dc
 				while(0 <= r+dr <= 7) and (0 <= c+dc <= 7):
@@ -273,7 +273,7 @@ class checkerBoard(Frame):
 					c = c+dc
 		else:
 			r, c = self.endPosition
-			for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
+			for dr, dc in [(-1, -1), (-1, 1)]:
 				if (0 <= r + 2 * dr <= 7) and (0 <= c + 2 * dc <= 7):#and self.startPosition != (r + 2 * dr, c + 2 * dc):
 					if (self.squares[r + dr, c + dc].pieceColor == self.opponentColor) and (self.squares[r + 2 * dr, c + 2 * dc].pieceColor == ''):
 						self.multiJump = True
@@ -321,7 +321,7 @@ class checkerBoard(Frame):
 	def switchSides(self):
 		self.master.update()
 		self.master.update_idletasks()
-		time.sleep(0.5)
+		time.sleep(0.1)
 		self.flip_board()
 		# Changes the player who is currently playing
 		self.curColor, self.opponentColor = self.opponentColor, self.curColor
