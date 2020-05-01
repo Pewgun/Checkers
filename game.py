@@ -1,6 +1,12 @@
 from tkinter import *
+import time
 
 WIDTH, HEIGHT = 80, 80
+
+def startAgain():
+	global board
+	board.destroy()
+	board = checkerBoard(root)
 
 class Square(Canvas):
 	"""Class for the squares on the board"""
@@ -67,7 +73,7 @@ class Square(Canvas):
 		self.king = True
 
 class checkerBoard(Frame):
-	def __init__(self, master):
+	def __init__(self, master, initial_state = 'white'):
 		Frame.__init__(self, root, highlightthickness = 0)
 		self.grid()
 		self.master = master
@@ -94,14 +100,14 @@ class checkerBoard(Frame):
 		self.whites.set("0")
 		self.turnLabel = Label(self.helpFrame, text = "White:", font=('Arial', 24))
 		self.turnLabel.grid(row=0, column = 2)
-		self.turnLabel = Label(self.helpFrame, textvariable = self.whites, font=('Arial', 30), bg='blue', width = 2)
+		self.turnLabel = Label(self.helpFrame, textvariable = self.whites, font=('Arial', 30), bg='white', foreground = 'black', width = 2)
 		self.turnLabel.grid(row=0, column = 3)
 
-		self.reds = StringVar()
-		self.reds.set("0")
-		self.turnLabel = Label(self.helpFrame, text = "Red:", font=('Arial', 24))
+		self.blacks = StringVar()
+		self.blacks.set("0")
+		self.turnLabel = Label(self.helpFrame, text = "Black:", font=('Arial', 24))
 		self.turnLabel.grid(row=0, column = 4)
-		self.turnLabel = Label(self.helpFrame, textvariable = self.reds, font=('Arial', 30), bg='red',width = 2)
+		self.turnLabel = Label(self.helpFrame, textvariable = self.blacks, font=('Arial', 30), bg='black',foreground = 'white',width = 2)
 		self.turnLabel.grid(row=0, column = 5)
 
 		self.squares = {}
@@ -115,10 +121,18 @@ class checkerBoard(Frame):
 					color = 'dark green'
 					self.squares[row, column] = Square(self, color, (row, column))
 					if row < 3:  # black
-						self.squares[row, column].draw('black', 'white')  # Creating a green square with a black checker
+						self.squares[row, column].draw('black' if initial_state == 'white' else 'white', initial_state)  # Creating a green square with a black checker
 					elif row > 4:  # white
-						self.squares[row, column].draw('white', 'black')  # Creating a green square with a white checker
+						self.squares[row, column].draw(initial_state, 'black' if initial_state == 'white' else 'white')  # Creating a green square with a white checker
 					self.squares[row, column].grid(row=row, column=column, sticky=W+E+N+S)
+
+	def flip_board(self):
+		for row in range(4):
+			for column in range(8):
+				if (row, column) in self.squares:
+					self.startPosition = (row, column)
+					self.endPosition = (7 - row, 7 - column)
+					self.swap()
 
 	def makeMove(self, endPosition):
 		"""A procedure which decides whether a user's move is valid
@@ -133,15 +147,15 @@ class checkerBoard(Frame):
 
 		self.turnPiece.draw(self.curColor, self.opponentColor)  # Visually shows that the current player has been changed
 		
-		redPieces = 0
+		blackPieces = 0
 		whitePieces = 0
 		for square in self.squares.values():
 			if square.pieceColor == 'white':
 				whitePieces += 1
 			elif square.pieceColor == 'black':
-				redPieces += 1
-		self.reds.set(str(12 - whitePieces))
-		self.whites.set(str(12 - redPieces))
+				blackPieces += 1
+		self.blacks.set(str(12 - whitePieces))
+		self.whites.set(str(12 - blackPieces))
 
 		self.gameOver()#Checks if it is the end of the game
 
@@ -151,9 +165,9 @@ class checkerBoard(Frame):
 		if self.squares[self.startPosition].isKing():
 			if abs(startColumn-endColumn) == abs(startRow-endRow):
 				#################################################################
-				if (startRow > endRow): rows = range(startRow - 1, endRow - 1, -1)
+				if startRow > endRow: rows = range(startRow - 1, endRow - 1, -1)
 				else: rows = range(startRow + 1, endRow + 1)
-				if (startColumn > endColumn): columns = range(startColumn - 1, endColumn - 1, -1)
+				if startColumn > endColumn: columns = range(startColumn - 1, endColumn - 1, -1)
 				else: columns = range(startColumn + 1, endColumn + 1)
 				#################################################################
 				for row, column in zip(rows, columns):
@@ -163,17 +177,12 @@ class checkerBoard(Frame):
 				self.squares[self.endPosition].deselect()
 				self.switchSides()
 		else:
-			direct = 1  # if self.curColor == 'black'
-			lim = 7
-			if self.curColor == 'white':
-				direct = -1
-				lim = 0
-			if abs(startColumn-endColumn) == 1 and (endRow - startRow) == direct:
+			if abs(startColumn-endColumn) == 1 and (endRow - startRow) == -1:
 				self.swap()
 				self.squares[self.endPosition].deselect()
-				if endRow == lim:
-					self.squares[self.endPosition].kingenize()
 				self.switchSides()
+				if endRow == 0:
+					self.squares[self.endPosition].kingenize()
 
 	def makeJump(self):
 		startRow, startColumn = self.startPosition
@@ -193,9 +202,7 @@ class checkerBoard(Frame):
 						count = 1
 						saveRow = row
 						saveColumn = column
-					elif self.squares[row, column].pieceColor == self.opponentColor:
-						return
-					elif self.squares[row, column].pieceColor == self.curColor:
+					elif self.squares[row, column].pieceColor != '':
 						return
 				###########Check if it is the move that maximizes the outcome
 				dr = (endRow - startRow)//abs(endRow - startRow)
@@ -222,7 +229,7 @@ class checkerBoard(Frame):
 						if nextMultiJump: break
 					if nextMultiJump: break
 				#######################################
-				self.checkForMultiJump(check = True)
+				self.checkForMultiJump(king = True)
 				if nextMultiJump == self.multiJump or self.multiJump:
 					self.swap()
 					self.squares[saveRow, saveColumn].clear()
@@ -233,13 +240,10 @@ class checkerBoard(Frame):
 					else:
 						self.startPosition = self.endPosition
 		else:
-			lim = 7  # row in which a piece turn into a king
-			if self.curColor == 'white':#Checks if the piece is white
-				lim = 0#If it is white it has to reach row 0 to transform into a king
 			if abs(startColumn - endColumn) == 2 and abs(endRow - startRow) == 2 and self.squares[startRow + (endRow-startRow)//2, startColumn + (endColumn-startColumn)//2].pieceColor == self.opponentColor:
 				self.swap()#Swaps startPosition and endPosition squares
 				self.squares[startRow + (endRow-startRow)//2, startColumn + (endColumn-startColumn)//2].clear()#Cleares the one that is in-between
-				if endRow == lim:
+				if endRow == 0:
 					self.squares[self.endPosition].kingenize()
 					self.multiJump = False
 				else:
@@ -250,11 +254,11 @@ class checkerBoard(Frame):
 				else:
 					self.startPosition = self.endPosition
 
-	def checkForMultiJump(self, check = False):
+	def checkForMultiJump(self, king = False):
 		self.multiJump = False
 		endRow, endColumn = self.endPosition
-		if self.squares[self.endPosition].isKing() or check:
-			for (dr, dc) in [(1, 1),(-1, 1),(-1, -1),(1, -1)]:
+		if king:
+			for (dr, dc) in [(-1, 1),(-1, -1)]:
 				r = endRow+dr
 				c = endColumn+dc
 				while(0 <= r+dr <= 7) and (0 <= c+dc <= 7):
@@ -265,10 +269,10 @@ class checkerBoard(Frame):
 						break
 					r = r+dr
 					c = c+dc
-		else:  # self.curColor == 'red'
+		else:
 			r, c = self.endPosition
 			for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
-				if (0 <= r + 2 * dr <= 7) and (0 <= c + 2 * dc <= 7) and self.startPosition != (r + 2 * dr, c + 2 * dc):
+				if (0 <= r + 2 * dr <= 7) and (0 <= c + 2 * dc <= 7):#and self.startPosition != (r + 2 * dr, c + 2 * dc):
 					if (self.squares[r + dr, c + dc].pieceColor == self.opponentColor) and (self.squares[r + 2 * dr, c + 2 * dc].pieceColor == ''):
 						self.multiJump = True
 						return
@@ -281,7 +285,7 @@ class checkerBoard(Frame):
 			if a.pieceColor == self.curColor:  # Enter only if the piece is of the current color
 				if a.isKing():  # If a piece is a king
 					for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:  # Looping through all the four direction that a king can go to
-						r, c = row+dr, column + dc  # Going to the next coordinate just after the position of the piece
+						r, c = row+dr, column+dc  # Going to the next coordinate just after the position of the piece
 						while(0 <= r+dr <= 7) and (0 <= c+dc <= 7):
 							# If an opponent piece is on the square and a piece just after it is empty
 							if (self.squares[r, c].pieceColor == self.opponentColor) and (self.squares[r + dr, c + dc].pieceColor == ''):
@@ -289,7 +293,7 @@ class checkerBoard(Frame):
 								self.must = True
 								return  # Leaves the function as it has already found that the player must jump
 							# If it is either current player's piece or it is the opponents piece because the first if was not satisfied
-							elif (self.squares[r, c].pieceColor == self.curColor) or (self.squares[r, c].pieceColor == self.opponentColor):
+							elif self.squares[r, c].pieceColor != '':
 								break  # Only break because there might be opportunities in other directions and other pieces
 							r, c = r+dr, c+dc  # Getting next coordinate
 				else:
@@ -313,14 +317,65 @@ class checkerBoard(Frame):
 		self.squares[self.endPosition].grid(row=self.endPosition[0], column=self.endPosition[1], sticky=W+E+N+S)
 
 	def switchSides(self):
+		self.master.update()
+		self.master.update_idletasks()
+		time.sleep(0.5)
+		self.flip_board()
 		# Changes the player who is currently playing
 		self.curColor, self.opponentColor = self.opponentColor, self.curColor
 
 	def gameOver(self):
-		for (row, column), square in self.squares:
-			pass
+		#There is gameover if all the current players pieces are removed or all pieces are blocked
+		curPlayerPieces = 0
+		before = self.multiJump
+		for (row, column), square in self.squares.items():
+			if square.pieceColor == self.curColor:
+				self.endPosition = (row, column)
+				self.checkForMultiJump(king = square.isKing())#Checking if the piece is blocked or not because if it is blocked it automatically does not count as a piece
+				canStep = False
+				#Check if it can move at least one space ahead
+				for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
+					if (0 <= row + dr <= 7) and (0 <= column + dc <= 7):
+						if self.squares[row + dr, column + dc].pieceColor == '':
+							canStep = True
+							break
+				if self.multiJump or canStep:
+					curPlayerPieces += 1
+					continue
+		self.multiJump = before
+
+		#Current player lost
+		if curPlayerPieces == 0:
+			self.curColor = ''#This does not allow any selection
+			#Visually show win
+			w, h = 300, 200
+			x, y = 4 * 75 - w // 2, 4 * 75 - h // 2
+
+			frame = Frame(root)
+			frame.place(height=h, width=w, x=x, y=y)
+
+			c = Canvas(frame, width=w, height=h, bg='white', borderwidth=0, highlightthickness=0)
+			c.pack()
+			c.create_line(0, 0, w, 0, w, h, 0, h, 0, 0, fill='black', width=6)
+
+			msg = str(self.opponentColor)+" won!!!"
+			lab = Label(frame, text=msg.capitalize(), font=('Calibri', 22), bg='white')
+			lab.place(x=30, y=30)
+
+			button = Button(frame, text="Start again", font=('Calibri', 14), command=startAgain, relief="flat", bd=1)
+			button.place(x=30, y=110)
 
 root = Tk()
 root.title("Checkers")
+root.resizable(False, False)
+
 board = checkerBoard(root)
+############Menu_bar#####################
+menu = Menu(root)
+root.config(menu=menu)
+
+file = Menu(menu)
+file.add_command(label="Star again", command=lambda: startAgain())
+menu.add_cascade(label='Options', menu=file)
+#########################################
 root.mainloop()
