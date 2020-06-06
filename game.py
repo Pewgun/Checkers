@@ -259,7 +259,7 @@ class checkerBoard(Frame):
 	def checkForMultiJump(self, king = False):
 		self.multiJump = False
 		endRow, endColumn = self.endPosition
-		if king:
+		if king or self.squares[self.endPosition].isKing():
 			for (dr, dc) in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
 				r = endRow+dr
 				c = endColumn+dc
@@ -273,7 +273,7 @@ class checkerBoard(Frame):
 					c = c+dc
 		else:
 			r, c = self.endPosition
-			for dr, dc in [(-1, -1), (-1, 1)]:
+			for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
 				if (0 <= r + 2 * dr <= 7) and (0 <= c + 2 * dc <= 7):#and self.startPosition != (r + 2 * dr, c + 2 * dc):
 					if (self.squares[r + dr, c + dc].pieceColor == self.opponentColor) and (self.squares[r + 2 * dr, c + 2 * dc].pieceColor == ''):
 						self.multiJump = True
@@ -327,45 +327,48 @@ class checkerBoard(Frame):
 		self.curColor, self.opponentColor = self.opponentColor, self.curColor
 
 	def gameOver(self):
-		#There is gameover if all the current players pieces are removed or all pieces are blocked
-		curPlayerPieces = 0
+		# There is gameover if all the current players pieces are removed or all pieces are blocked
 		before = self.multiJump
 		for (row, column), square in self.squares.items():
 			if square.pieceColor == self.curColor:
 				self.endPosition = (row, column)
-				self.checkForMultiJump(king = square.isKing())#Checking if the piece is blocked or not because if it is blocked it automatically does not count as a piece
-				canStep = False
-				#Check if it can move at least one space ahead
-				for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
-					if (0 <= row + dr <= 7) and (0 <= column + dc <= 7):
-						if self.squares[row + dr, column + dc].pieceColor == '':
-							canStep = True
-							break
-				if self.multiJump or canStep:
-					curPlayerPieces += 1
-					continue
+				self.checkForMultiJump()  # Checking if the piece is blocked or not because if it is blocked it automatically does not count as a piece
+				if self.multiJump:
+					self.multiJump = before
+					return
+				# Check if it can move at least one space ahead
+				if self.squares[row, column].isKing():
+					for dr, dc in [(1, 1), (1, -1), (-1, -1), (-1, 1)]:
+						if (0 <= row + dr <= 7) and (0 <= column + dc <= 7):
+							if self.squares[row + dr, column + dc].pieceColor == '':
+								self.multiJump = before
+								return
+				else:
+					for dr, dc in [(-1, -1), (-1, 1)]:
+						if (0 <= row + dr <= 7) and (0 <= column + dc <= 7):
+							if self.squares[row + dr, column + dc].pieceColor == '':
+								self.multiJump = before
+								return
 		self.multiJump = before
 
-		#Current player lost
-		if curPlayerPieces == 0:
-			self.curColor = ''#This does not allow any selection
-			#Visually show win
-			w, h = 300, 200
-			x, y = 4 * 75 - w // 2, 4 * 75 - h // 2
+		self.curColor = ''  # This does not allow any selection
+		# Visually show win
+		w, h = 300, 200
+		x, y = 4 * 75 - w // 2, 4 * 75 - h // 2
 
-			frame = Frame(root)
-			frame.place(height=h, width=w, x=x, y=y)
+		frame = Frame(root)
+		frame.place(height=h, width=w, x=x, y=y)
 
-			c = Canvas(frame, width=w, height=h, bg='white', borderwidth=0, highlightthickness=0)
-			c.pack()
-			c.create_line(0, 0, w, 0, w, h, 0, h, 0, 0, fill='black', width=6)
+		c = Canvas(frame, width=w, height=h, bg='white', borderwidth=0, highlightthickness=0)
+		c.pack()
+		c.create_line(0, 0, w, 0, w, h, 0, h, 0, 0, fill='black', width=6)
 
-			msg = str(self.opponentColor)+" won!!!"
-			lab = Label(frame, text=msg.capitalize(), font=('Calibri', 22), bg='white')
-			lab.place(x=30, y=30)
+		msg = str(self.opponentColor) + " won!!!"
+		lab = Label(frame, text=msg.capitalize(), font=('Calibri', 22), bg='white')
+		lab.place(x=30, y=30)
 
-			button = Button(frame, text="Start again", font=('Calibri', 14), command=startAgain, relief="flat", bd=1)
-			button.place(x=30, y=110)
+		button = Button(frame, text="Start again", font=('Calibri', 14), command=startAgain, relief="flat", bd=1)
+		button.place(x=30, y=110)
 
 root = Tk()
 root.title("Checkers")
